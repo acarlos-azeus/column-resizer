@@ -117,11 +117,13 @@ export default class ColumnResizer {
         const oe = e.touches;
         const ox = oe ? oe[0].pageX : e.pageX;
         let x = ox - grip.ox + grip.l;
-        const mw = t.opt.minWidth;
         const i = grip.i;
+        // If there's an existing min-width in a column, use this instead of the default min-width for all columns
+        const mw = t.columns[i].style.minWidth ? Number(t.columns[i].style.minWidth.replace(/px/, '')) :  t.opt.minWidth;
         const l = t.cellSpace * 1.5 + mw + t.borderSpace;
         const last = i === t.columnCnt - 1;
         const min = i ? t.grips[i - 1].offsetLeft + t.cellSpace + mw : l;
+        const prevGripWidth = grip.x;
         const max = t.opt.fixed ? i === t.columnCnt - 1 ? t.tableWidth - l : t.grips[i + 1].offsetLeft - t.cellSpace - mw : Infinity;
         x = Math.max(min, Math.min(max, x));
         grip.x = x;
@@ -133,7 +135,7 @@ export default class ColumnResizer {
             if (last) {
                 t.columns[i].style.width = grip.w + this.PX;
                 if (!t.opt.fixed && t.opt.overflow) {
-                    t.style.minWidth = (t.tableWidth + x - grip.l) + this.PX;
+                    t.style.minWidth = (t.tableWidth + prevGripWidth - grip.l) + this.PX;
                 } else {
                     t.tableWidth = Number(window.getComputedStyle(t).width.replace(/px/, '')).valueOf();
                 }
@@ -176,7 +178,7 @@ export default class ColumnResizer {
                 // fix - adjust table size also, when reducing last column size
                 t.tableWidth = t.tableWidth - (cw - grip.w);
                 this.tb.style.minWidth = t.tableWidth + this.PX;
-                this.tb.style.width = this.tb.style.width;
+                this.tb.style.width = this.tb.style.minWidth;
                 c.style.width = grip.w + this.PX;
                 c.w = grip.w;
             } else {
@@ -524,9 +526,9 @@ export default class ColumnResizer {
             column.style.width = column.w + this.PX;
             column.removeAttribute('width');
             handle.data = {i: index, t: t.getAttribute(this.ID), last: index === t.columnCnt - 1};
+            totalWidth += column.w;
             t.grips.push(handle);
             t.columns.push(column);
-            totalWidth += column.w;
         });
         let ot = Array.from(t.querySelectorAll('td'));
         ot.concat(Array.from(t.querySelectorAll('th')));
@@ -551,9 +553,9 @@ export default class ColumnResizer {
                 t.classList.add(this.FLEX);
             } else {
                 // fix - adjust the table size according to the total size of the columns
+                t.style.minWidth = totalWidth + this.PX;
+                t.style.width = totalWidth + this.PX;
                 t.tableWidth = totalWidth;
-                t.style.width = totalWidth;
-                t.style.minWidth = totalWidth;
             }
         }
         this.syncGrips();
